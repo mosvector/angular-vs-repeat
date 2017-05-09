@@ -152,6 +152,7 @@
                     expressionMatches,
                     lhs,
                     rhs,
+                    aliasAs,
                     rhsSuffix,
                     originalNgRepeatAttr,
                     collectionName = '$vs_collection',
@@ -187,10 +188,21 @@
                     throw new Error('angular-vs-repeat: no ng-repeat directive on a child element');
                 }
 
-                expressionMatches = /^\s*(\S+)\s+in\s+([\S\s]+?)(track\s+by\s+\S+)?$/.exec(ngRepeatExpression);
+                expressionMatches = (/^\s*([\s\S]+?)\s+in\s+([\s\S]+?)(?:\s+as\s+([\s\S]+?))?(?:\s+track\s+by\s+([\s\S]+?))?\s*$/).exec(ngRepeatExpression);
                 lhs = expressionMatches[1];
                 rhs = expressionMatches[2];
-                rhsSuffix = expressionMatches[3];
+                aliasAs = expressionMatches[3];
+                rhsSuffix = expressionMatches[4];
+
+                if (aliasAs && (!/^[$a-zA-Z_][$a-zA-Z0-9_]*$/.test(aliasAs) ||
+                        /^(null|undefined|this|\$index|\$first|\$middle|\$last|\$even|\$odd|\$parent|\$root|\$id)$/.test(aliasAs))) {
+                    throw new Error('angular-vs-repeat: alias \'{0}\' is invalid --- must be a valid JS identifier which is not a reserved name.',
+                        aliasAs);
+                }
+
+                if (aliasAs) {
+                    collectionName = aliasAs;
+                }
 
                 if (isNgRepeatStart) {
                     var index = 0;
@@ -271,6 +283,9 @@
                         function refresh() {
                             if (!originalCollection || originalCollection.length < 1) {
                                 $scope[collectionName] = [];
+                                if ($scope.$parent) {
+                                    $scope.$parent[collectionName] = $scope[collectionName];
+                                }
                                 originalLength = 0;
                                 $scope.sizesCumulative = [0];
                             }
@@ -422,6 +437,9 @@
                                     _maxEndIndex = Math.max(__endIndex, _maxEndIndex);
                                     $scope.endIndex = $$options.latch ? _maxEndIndex : __endIndex;
                                     $scope[collectionName] = originalCollection.slice($scope.startIndex, $scope.endIndex);
+                                    if ($scope.$parent) {
+                                        $scope.$parent[collectionName] = $scope[collectionName];
+                                    }
                                     _prevEndIndex = $scope.endIndex;
 
                                     $scope.$$postDigest(function() {
@@ -561,6 +579,9 @@
 
                             if (digestRequired) {
                                 $scope[collectionName] = originalCollection.slice($scope.startIndex, $scope.endIndex);
+                                if ($scope.$parent) {
+                                    $scope.$parent[collectionName] = $scope[collectionName];
+                                }
 
                                 // Emit the event
                                 $scope.$emit('vsRepeatInnerCollectionUpdated', $scope.startIndex, $scope.endIndex, _prevStartIndex, _prevEndIndex);
