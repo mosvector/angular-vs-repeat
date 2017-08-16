@@ -280,6 +280,14 @@
                             refresh();
                         });
 
+                           function scrollToBeginning() {
+                                $scrollParent[0][scrollPos] = 0;
+                                var pos = getScrollPos($scrollParent[0],[scrollPos] );
+                                if (updateInnerCollection()) {
+                                $scope.$applyAsync();
+                                }
+                        }
+
                         function refresh() {
                             if (!originalCollection || originalCollection.length < 1) {
                                 $scope[collectionName] = [];
@@ -418,6 +426,7 @@
                         });
 
                         $scope.$on('vsRepeatTrigger', refresh);
+                        $scope.$on('scrollToBeginning', scrollToBeginning);
 
                         $scope.$on('vsRepeatResize', function() {
                             autoSize = true;
